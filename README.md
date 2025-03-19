@@ -16,14 +16,14 @@
 - [x] **GPU 资源检测**：当 GPU 功耗持续低于阈值时，触发通知（适用于深度学习训练结束检测）。  
 - [x] **Webhook 通知**：支持 **飞书、钉钉、Slack、Discord、Teams** 等平台，可自定义通知内容。  
 - [x] **可自定义配置**：支持 **YAML 配置文件**，可调整检测规则和通知格式。  
-- [ ] web GUI界面
-- [ ] examples不同场景范例
-- [ ] docker
-- [ ] Pypl
-- [ ] Windows环境适配
-- [ ] 邮箱推送支持
-- [ ] 企业微信推送支持
-- [ ] 更多可选触发条件预设
+- [ ] web GUI界面，实现gui界面配置参数，创建任务，预设任务，并且可视化系统任务参数、进度信息和系统状态信息
+- [ ] 按统一编码方式，如utf-8保存日志文件等内容
+- [ ] 创建更多examples作为不同场景的范例
+- [ ] 创建docker
+- [ ] 多种显卡环境适配
+- [ ] 添加更多渠道的推送支持，如邮箱推送支持
+- [ ] 添加企业微信推送支持
+- [ ] 完善更多可选触发检测任务完成的条件
 ---
 
 ## 🚀 安装  
@@ -36,7 +36,7 @@ pip install -r requirements.txt
 
 > **依赖环境：** Python 3.7 及以上
 > 
-> **GPU监测：** 需要在有NVIDIA显卡的Linux环境下运行
+> **GPU监测：** 需要在有NVIDIA显卡的环境下运行
 
 ---
 
@@ -112,8 +112,8 @@ webhook:
   include_duration_title: "总耗时"           # 包含任务时长
   include_hostname: true                    # 包含主机名
   include_hostname_title: "主机名"           # 包含主机名
-  include_gpu_info: true                    # 包含GPU信息，需要在有NVIDIA显卡的Linux环境下运行
-  include_gpu_info_title: "GPU信息"          # 包含GPU信息，需要在有NVIDIA显卡的Linux环境下运行
+  include_gpu_info: true                    # 包含GPU信息，需要在有NVIDIA显卡的环境下运行
+  include_gpu_info_title: "GPU信息"          # 包含GPU信息，需要在有NVIDIA显卡的环境下运行
 
   footer: "此消息由TaskNya发送"  # 页脚信息
 
