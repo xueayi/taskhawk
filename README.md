@@ -1,6 +1,6 @@
 # 🐈 TaskNya - 实时任务监控系统
 
-![Python](https://img.shields.io/badge/Python-3.7%2B-blue.svg) 
+![Python](https://img.shields.io/badge/Python-3.8%2B-blue.svg) 
 ![License](https://img.shields.io/badge/License-MIT-green.svg) 
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen.svg)  
 
@@ -20,7 +20,7 @@
 - [ ] 按统一编码方式，如utf-8保存日志文件等内容
 - [ ] 创建更多examples作为不同场景的范例
 - [ ] 创建docker
-- [ ] 多种显卡环境适配
+- [ ] NVidia、AMD、核显多种显卡环境适配
 - [ ] 添加更多渠道的推送支持，如邮箱推送支持
 - [ ] 添加企业微信推送支持
 - [ ] 完善更多可选触发检测任务完成的条件
@@ -34,7 +34,7 @@ cd TaskNya
 pip install -r requirements.txt  
 ```
 
-> **依赖环境：** Python 3.7 及以上
+> **依赖环境：** Python 3.8 及以上
 > 
 > **GPU监测：** 需要在有NVIDIA显卡的环境下运行
 

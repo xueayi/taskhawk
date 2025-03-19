@@ -1,18 +1,39 @@
+# TaskNya配置文件
+app:
+  name: "TaskNya"
+  host: "0.0.0.0"
+  port: 15000
+  debug: true
+  secret_key: "your-secret-key"
+  SQLALCHEMY_DATABASE_URI: "sqlite:///tasknya.db"
+  SQLALCHEMY_TRACK_MODIFICATIONS: false
+
+# 数据库配置
+database:
+  type: "sqlite"  # sqlite/postgresql
+  path: "tasknya.db"  # SQLite数据库文件路径
+  # PostgreSQL配置（可选）
+  # host: "localhost"
+  # port: 5432
+  # name: "tasknya"
+  # user: "postgres"
+  # password: "password"
+
 # 深度学习任务监控配置文件
 monitor:
   # 基本配置
   project_name: "深度学习训练"     # 项目名称
   check_interval: 5               # 检查间隔(秒)
   logprint: 60                     # 日志打印间隔（秒）
-  timeout: None                   # 监控超时时间(秒)，设为null则无限等待
+  timeout: null                   # 监控超时时间(秒)，设为null则无限等待
   
   # 文件检查配置
-  check_file_enabled: true         # 是否启用文件检查
+  check_file_enabled: false         # 是否启用文件检查
   check_file_path: "./output/model_final.pth"  # 要检查的文件路径
   
   # 日志检查配置
   check_log_enabled: false          # 是否启用日志检查
-  check_log_path: "./logs/training.log"  # 日志文件路径
+  check_log_path: "./output/training.log"  # 日志文件路径
   check_log_markers:               # 完成标记列表
     - "Training completed"
     - "任务完成"
@@ -20,34 +41,79 @@ monitor:
     - "Epoch [300/300]"
   
   # GPU功耗检查配置
-  check_gpu_power_enabled: false   # 是否启用GPU功耗检查
+  check_gpu_power_enabled: true   # 是否启用GPU功耗检查
   check_gpu_power_threshold: 50.0  # 功耗阈值(瓦特)
   check_gpu_power_gpu_ids: "all"   # 可以是数字、列表[0,1]或"all"
   check_gpu_power_consecutive_checks: 3  # 连续几次检测低于阈值才判定完成
 
-# 飞书webhook配置
-webhook:
-  enabled: true                    # 是否启用webhook通知
-  url: "https://open.feishu.cn/open-apis/bot/v2/hook/yoururl"  # webhook URL
-  
-  # 消息配置
-  title: "🎉 深度学习训练完成通知"  # 消息标题
-  color: "green"                   # 卡片颜色: green, blue, red, grey, turquoise
-  
-  # 要包含的信息项
-  include_project_name: true                # 包含项目名称
-  include_project_name_title: "训练项目"       # 包含项目名称
-  include_start_time: true                  # 包含开始时间
-  include_start_time_title: "训练开始"    # 包含开始时间
-  include_end_time: true                    # 包含结束时间
-  include_end_time_title: "训练结束时间"      # 包含结束时间
-  include_method: true                      # 包含判断方法
-  include_method_title: "系统判断依据"        # 包含判断方法
-  include_duration: true                    # 包含任务时长
-  include_duration_title: "总耗时"           # 包含任务时长
-  include_hostname: true                    # 包含主机名
-  include_hostname_title: "主机名"           # 包含主机名
-  include_gpu_info: true                    # 包含GPU信息
-  include_gpu_info_title: "GPU信息"          # 包含GPU信息
+  # 系统监控配置
+  system:
+    enabled: true
+    interval: 5  # 系统监控间隔（秒）
+    cpu:
+      enabled: true
+      warning_threshold: 90  # CPU使用率警告阈值
+    memory:
+      enabled: true
+      warning_threshold: 90  # 内存使用率警告阈值
+    disk:
+      enabled: true
+      warning_threshold: 90  # 磁盘使用率警告阈值
+    gpu:
+      enabled: true
+      warning_threshold: 85  # GPU使用率警告阈值
+      temp_threshold: 80     # GPU温度警告阈值
+    network:
+      enabled: true
+      interfaces: ["eth0", "wlan0"]  # 要监控的网络接口
 
-  footer: "此消息由TaskNya发送"  # 页脚信息
+# 通知配置
+notification:
+  # Webhook配置
+  webhook:
+    enabled: true                    
+    url: "https://open.feishu.cn/open-apis/bot/v2/hook/dad04f75-770a-4c27-a89b-5ce8bdeb8825"
+    title: "🎉 深度学习训练完成通知"
+    color: "green"                   
+    include_project_name: true                
+    include_project_name_title: "训练项目"      
+    include_start_time: true                  
+    include_start_time_title: "训练开始"    
+    include_end_time: true                    
+    include_end_time_title: "训练结束时间"     
+    include_method: true                      
+    include_method_title: "系统判断依据"       
+    include_duration: true                    
+    include_duration_title: "总耗时"          
+    include_hostname: true                    
+    include_hostname_title: "主机名"          
+    include_gpu_info: true                    
+    include_gpu_info_title: "GPU信息"         
+    footer: "此消息由TaskNya发送"
+
+  # 邮件通知配置
+  email:
+    enabled: false
+    smtp_server: "smtp.example.com"
+    smtp_port: 587
+    username: "your-email@example.com"
+    password: "your-password"
+    use_tls: true
+    from_address: "your-email@example.com"
+    to_addresses: ["recipient@example.com"]
+
+  # 企业微信配置
+  wechat:
+    enabled: false
+    corp_id: "your-corp-id"
+    agent_id: "your-agent-id"
+    secret: "your-secret"
+
+# 日志配置
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/tasknya.log"
+  max_size: 10485760  # 10MB
+  backup_count: 5
+  encoding: "utf-8"

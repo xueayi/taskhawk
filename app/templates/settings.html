@@ -1,0 +1,628 @@
+{% extends "base.html" %}
+
+{% block title %}设置 - TaskNya{% endblock %}
+
+{% block additional_css %}
+<style>
+    :root {
+        --primary-color: #6366f1;
+        --primary-hover: #4f46e5;
+        --bg-sidebar: #f8fafc;
+        --bg-card: #ffffff;
+        --text-primary: #1e293b;
+        --text-secondary: #64748b;
+        --border-color: #e2e8f0;
+    }
+
+    .settings-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .settings-nav {
+        position: sticky;
+        top: 1rem;
+        background: var(--bg-sidebar);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .settings-nav .nav-link {
+        color: var(--text-secondary);
+        padding: 0.75rem 1rem;
+        border-radius: 0.5rem;
+        transition: all 0.3s ease;
+        margin-bottom: 0.5rem;
+    }
+
+    .settings-nav .nav-link:hover {
+        background-color: rgba(99, 102, 241, 0.1);
+        color: var(--primary-color);
+    }
+
+    .settings-nav .nav-link.active {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .settings-section {
+        background: var(--bg-card);
+        border-radius: 1rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .form-control, .form-select {
+        border-radius: 0.5rem;
+        border-color: var(--border-color);
+        padding: 0.75rem 1rem;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    }
+
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background-color: var(--primary-hover);
+        border-color: var(--primary-hover);
+    }
+
+    .card {
+        border-radius: 1rem;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .card-header {
+        background-color: var(--bg-sidebar);
+        border-bottom: 1px solid var(--border-color);
+        padding: 1rem 1.5rem;
+    }
+
+    .preset-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .preset-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .preset-card.active {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    }
+
+    .preset-actions {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .preset-card:hover .preset-actions {
+        opacity: 1;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+    <!-- 配置预设部分 -->
+    <div class="settings-section mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="mb-0">配置预设</h4>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#savePresetModal">
+                <i class="fas fa-save me-2"></i>保存当前配置为预设
+            </button>
+        </div>
+        <div class="row g-4">
+            {% for preset in presets %}
+            <div class="col-md-4">
+                <div class="card preset-card {% if preset.active %}active{% endif %}" data-preset-id="{{ preset.id }}">
+                    <div class="card-body">
+                        <div class="preset-actions">
+                            <button class="btn btn-sm btn-outline-danger" onclick="deletePreset('{{ preset.id }}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        <h5 class="card-title mb-2">{{ preset.name }}</h5>
+                        <p class="card-text text-muted small mb-3">{{ preset.description }}</p>
+                        <div class="d-flex align-items-center text-muted small">
+                            <i class="fas fa-clock me-2"></i>
+                            <span>创建于 {{ preset.created_at }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- 左侧导航 -->
+        <div class="col-lg-3">
+            <div class="settings-nav">
+                <h5 class="mb-3">设置</h5>
+                <nav class="nav flex-column">
+                    <a class="nav-link active" href="#general">
+                        <i class="fas fa-cog fa-fw me-2"></i>通用设置
+                    </a>
+                    <a class="nav-link" href="#monitor">
+                        <i class="fas fa-desktop fa-fw me-2"></i>监控设置
+                    </a>
+                    <a class="nav-link" href="#notification">
+                        <i class="fas fa-bell fa-fw me-2"></i>通知设置
+                    </a>
+                    <a class="nav-link" href="#task">
+                        <i class="fas fa-tasks fa-fw me-2"></i>任务设置
+                    </a>
+                    <a class="nav-link" href="#system">
+                        <i class="fas fa-server fa-fw me-2"></i>系统设置
+                    </a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- 右侧设置内容 -->
+        <div class="col-lg-9">
+            <!-- 通用设置 -->
+            <div id="general" class="settings-section">
+                <h4 class="mb-4">通用设置</h4>
+                <form>
+                    <div class="mb-3">
+                        <label for="project-name" class="form-label">项目名称</label>
+                        <input type="text" class="form-control" id="project-name" value="{{ config.project_name }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="refresh-interval" class="form-label">刷新间隔（秒）</label>
+                        <input type="number" class="form-control" id="refresh-interval" value="{{ config.refresh_interval }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="language" class="form-label">界面语言</label>
+                        <select class="form-select" id="language">
+                            <option value="zh-CN" selected>简体中文</option>
+                            <option value="en-US">English</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 监控设置 -->
+            <div id="monitor" class="settings-section">
+                <h4 class="mb-4">监控设置</h4>
+                <form>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="enable-gpu-monitor" checked>
+                            <label class="form-check-label" for="enable-gpu-monitor">启用 GPU 监控</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="gpu-power-threshold" class="form-label">GPU 功耗阈值（瓦特）</label>
+                        <input type="number" class="form-control" id="gpu-power-threshold" value="{{ config.gpu_power_threshold }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="gpu-temp-threshold" class="form-label">GPU 温度阈值（°C）</label>
+                        <input type="number" class="form-control" id="gpu-temp-threshold" value="{{ config.gpu_temp_threshold }}">
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="enable-system-monitor" checked>
+                            <label class="form-check-label" for="enable-system-monitor">启用系统监控</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cpu-threshold" class="form-label">CPU 使用率阈值（%）</label>
+                        <input type="number" class="form-control" id="cpu-threshold" value="{{ config.cpu_threshold }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="memory-threshold" class="form-label">内存使用率阈值（%）</label>
+                        <input type="number" class="form-control" id="memory-threshold" value="{{ config.memory_threshold }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="disk-threshold" class="form-label">磁盘使用率阈值（%）</label>
+                        <input type="number" class="form-control" id="disk-threshold" value="{{ config.disk_threshold }}">
+                    </div>
+                </form>
+            </div>
+
+            <!-- 通知设置 -->
+            <div id="notification" class="settings-section">
+                <h4 class="mb-4">通知设置</h4>
+                <form>
+                    <!-- Webhook 设置 -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="enable-webhook" checked>
+                                <label class="form-check-label" for="enable-webhook">启用 Webhook 通知</label>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="webhook-url" class="form-label">Webhook URL</label>
+                                <input type="url" class="form-control" id="webhook-url" value="{{ config.webhook_url }}">
+                            </div>
+                            <div class="mb-3">
+                                <label for="webhook-secret" class="form-label">Secret Token</label>
+                                <input type="password" class="form-control" id="webhook-secret" value="{{ config.webhook_secret }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 邮件设置 -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="enable-email">
+                                <label class="form-check-label" for="enable-email">启用邮件通知</label>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="smtp-server" class="form-label">SMTP 服务器</label>
+                                <input type="text" class="form-control" id="smtp-server" value="{{ config.smtp_server }}">
+                            </div>
+                            <div class="mb-3">
+                                <label for="smtp-port" class="form-label">SMTP 端口</label>
+                                <input type="number" class="form-control" id="smtp-port" value="{{ config.smtp_port }}">
+                            </div>
+                            <div class="mb-3">
+                                <label for="smtp-username" class="form-label">SMTP 用户名</label>
+                                <input type="text" class="form-control" id="smtp-username" value="{{ config.smtp_username }}">
+                            </div>
+                            <div class="mb-3">
+                                <label for="smtp-password" class="form-label">SMTP 密码</label>
+                                <input type="password" class="form-control" id="smtp-password" value="{{ config.smtp_password }}">
+                            </div>
+                            <div class="mb-3">
+                                <label for="email-to" class="form-label">收件人邮箱</label>
+                                <input type="email" class="form-control" id="email-to" value="{{ config.email_to }}">
+                                <div class="form-text">多个邮箱请用逗号分隔</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 企业微信设置 -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="enable-wechat">
+                                <label class="form-check-label" for="enable-wechat">启用企业微信通知</label>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="wechat-corpid" class="form-label">企业ID</label>
+                                <input type="text" class="form-control" id="wechat-corpid" value="{{ config.wechat_corpid }}">
+                            </div>
+                            <div class="mb-3">
+                                <label for="wechat-corpsecret" class="form-label">应用Secret</label>
+                                <input type="password" class="form-control" id="wechat-corpsecret" value="{{ config.wechat_corpsecret }}">
+                            </div>
+                            <div class="mb-3">
+                                <label for="wechat-agentid" class="form-label">应用ID</label>
+                                <input type="text" class="form-control" id="wechat-agentid" value="{{ config.wechat_agentid }}">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 任务设置 -->
+            <div id="task" class="settings-section">
+                <h4 class="mb-4">任务设置</h4>
+                <form>
+                    <div class="mb-3">
+                        <label for="task-timeout" class="form-label">任务超时时间（分钟）</label>
+                        <input type="number" class="form-control" id="task-timeout" value="{{ config.task_timeout }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="task-check-interval" class="form-label">任务检查间隔（秒）</label>
+                        <input type="number" class="form-control" id="task-check-interval" value="{{ config.task_check_interval }}">
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="auto-clean-tasks" checked>
+                            <label class="form-check-label" for="auto-clean-tasks">自动清理已完成任务</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="task-clean-days" class="form-label">清理超过天数的任务</label>
+                        <input type="number" class="form-control" id="task-clean-days" value="{{ config.task_clean_days }}">
+                    </div>
+                </form>
+            </div>
+
+            <!-- 系统设置 -->
+            <div id="system" class="settings-section">
+                <h4 class="mb-4">系统设置</h4>
+                <form>
+                    <div class="mb-3">
+                        <label for="log-level" class="form-label">日志级别</label>
+                        <select class="form-select" id="log-level">
+                            <option value="DEBUG" {% if config.log_level == 'DEBUG' %}selected{% endif %}>DEBUG</option>
+                            <option value="INFO" {% if config.log_level == 'INFO' %}selected{% endif %}>INFO</option>
+                            <option value="WARNING" {% if config.log_level == 'WARNING' %}selected{% endif %}>WARNING</option>
+                            <option value="ERROR" {% if config.log_level == 'ERROR' %}selected{% endif %}>ERROR</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="log-file" class="form-label">日志文件路径</label>
+                        <input type="text" class="form-control" id="log-file" value="{{ config.log_file }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="data-dir" class="form-label">数据存储目录</label>
+                        <input type="text" class="form-control" id="data-dir" value="{{ config.data_dir }}">
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="enable-debug" {% if config.debug %}checked{% endif %}>
+                            <label class="form-check-label" for="enable-debug">启用调试模式</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 保存按钮 -->
+            <div class="d-flex justify-content-end mt-4">
+                <button type="button" class="btn btn-secondary me-2" id="reset-settings">重置</button>
+                <button type="button" class="btn btn-primary" id="save-settings">保存设置</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 保存预设模态框 -->
+<div class="modal fade" id="savePresetModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">保存配置预设</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="presetForm">
+                    <div class="mb-3">
+                        <label for="preset-name" class="form-label">预设名称</label>
+                        <input type="text" class="form-control" id="preset-name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="preset-description" class="form-label">预设描述</label>
+                        <textarea class="form-control" id="preset-description" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="save-preset">保存预设</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 导航滚动监听
+    const sections = document.querySelectorAll('.settings-section');
+    const navLinks = document.querySelectorAll('.settings-nav .nav-link');
+    
+    window.addEventListener('scroll', () => {
+        let current = '';
+        
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            const sectionHeight = section.clientHeight;
+            if (pageYOffset >= sectionTop - 60) {
+                current = section.getAttribute('id');
+            }
+        });
+        
+        navLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href').slice(1) === current) {
+                link.classList.add('active');
+            }
+        });
+    });
+    
+    // 保存设置
+    document.getElementById('save-settings').addEventListener('click', function() {
+        this.disabled = true;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>保存中...';
+        
+        // 收集所有设置
+        const settings = {
+            general: {
+                project_name: document.getElementById('project-name').value,
+                refresh_interval: document.getElementById('refresh-interval').value,
+                language: document.getElementById('language').value
+            },
+            monitor: {
+                enable_gpu_monitor: document.getElementById('enable-gpu-monitor').checked,
+                gpu_power_threshold: document.getElementById('gpu-power-threshold').value,
+                gpu_temp_threshold: document.getElementById('gpu-temp-threshold').value,
+                enable_system_monitor: document.getElementById('enable-system-monitor').checked,
+                cpu_threshold: document.getElementById('cpu-threshold').value,
+                memory_threshold: document.getElementById('memory-threshold').value,
+                disk_threshold: document.getElementById('disk-threshold').value
+            },
+            notification: {
+                webhook: {
+                    enabled: document.getElementById('enable-webhook').checked,
+                    url: document.getElementById('webhook-url').value,
+                    secret: document.getElementById('webhook-secret').value
+                },
+                email: {
+                    enabled: document.getElementById('enable-email').checked,
+                    smtp_server: document.getElementById('smtp-server').value,
+                    smtp_port: document.getElementById('smtp-port').value,
+                    smtp_username: document.getElementById('smtp-username').value,
+                    smtp_password: document.getElementById('smtp-password').value,
+                    to: document.getElementById('email-to').value
+                },
+                wechat: {
+                    enabled: document.getElementById('enable-wechat').checked,
+                    corpid: document.getElementById('wechat-corpid').value,
+                    corpsecret: document.getElementById('wechat-corpsecret').value,
+                    agentid: document.getElementById('wechat-agentid').value
+                }
+            },
+            task: {
+                timeout: document.getElementById('task-timeout').value,
+                check_interval: document.getElementById('task-check-interval').value,
+                auto_clean: document.getElementById('auto-clean-tasks').checked,
+                clean_days: document.getElementById('task-clean-days').value
+            },
+            system: {
+                log_level: document.getElementById('log-level').value,
+                log_file: document.getElementById('log-file').value,
+                data_dir: document.getElementById('data-dir').value,
+                debug: document.getElementById('enable-debug').checked
+            }
+        };
+        
+        // 发送到服务器
+        fetch('/api/v1/settings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(settings)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.code === 200) {
+                // 显示成功提示
+                const toast = new bootstrap.Toast(document.createElement('div'));
+                toast.show();
+            } else {
+                throw new Error(data.message);
+            }
+        })
+        .catch(error => {
+            // 显示错误提示
+            console.error('保存设置失败:', error);
+        })
+        .finally(() => {
+            this.disabled = false;
+            this.innerHTML = '保存设置';
+        });
+    });
+    
+    // 重置设置
+    document.getElementById('reset-settings').addEventListener('click', function() {
+        if (confirm('确定要重置所有设置吗？这将恢复默认配置。')) {
+            // 重置逻辑
+        }
+    });
+
+    // 配置预设相关功能
+    document.querySelectorAll('.preset-card').forEach(card => {
+        card.addEventListener('click', function(e) {
+            if (!e.target.closest('.preset-actions')) {
+                const presetId = this.dataset.presetId;
+                loadPreset(presetId);
+            }
+        });
+    });
+
+    // 保存预设
+    document.getElementById('save-preset').addEventListener('click', function() {
+        const presetData = {
+            name: document.getElementById('preset-name').value,
+            description: document.getElementById('preset-description').value,
+            settings: collectCurrentSettings()
+        };
+
+        fetch('/api/v1/settings/presets', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(presetData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.code === 200) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('savePresetModal'));
+                modal.hide();
+                location.reload();
+            } else {
+                throw new Error(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('保存预设失败:', error);
+            alert('保存预设失败: ' + error.message);
+        });
+    });
+});
+
+// 加载预设
+function loadPreset(presetId) {
+    fetch(`/api/v1/settings/presets/${presetId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.code === 200) {
+                applySettings(data.data.settings);
+                // 更新预设卡片状态
+                document.querySelectorAll('.preset-card').forEach(card => {
+                    card.classList.toggle('active', card.dataset.presetId === presetId);
+                });
+            } else {
+                throw new Error(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('加载预设失败:', error);
+            alert('加载预设失败: ' + error.message);
+        });
+}
+
+// 删除预设
+function deletePreset(presetId) {
+    if (confirm('确定要删除这个预设吗？此操作不可恢复。')) {
+        fetch(`/api/v1/settings/presets/${presetId}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.code === 200) {
+                location.reload();
+            } else {
+                throw new Error(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('删除预设失败:', error);
+            alert('删除预设失败: ' + error.message);
+        });
+    }
+}
+
+// 收集当前设置
+function collectCurrentSettings() {
+    // ... existing collectSettings code ...
+}
+
+// 应用设置
+function applySettings(settings) {
+    // ... existing applySettings code ...
+}
+</script>
+{% endblock %} 

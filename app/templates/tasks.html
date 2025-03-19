@@ -1,0 +1,785 @@
+{% extends "base.html" %}
+
+{% block title %}任务管理 - TaskNya{% endblock %}
+
+{% block additional_css %}
+<style>
+    :root {
+        --primary-color: #6366f1;
+        --primary-hover: #4f46e5;
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --error-color: #ef4444;
+        --bg-content: #f8fafc;
+        --bg-card: #ffffff;
+        --text-primary: #1e293b;
+        --text-secondary: #64748b;
+        --border-color: #e2e8f0;
+    }
+
+    .tasks-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .task-card {
+        background: var(--bg-card);
+        border-radius: 1rem;
+        border: 1px solid var(--border-color);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .task-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .task-status {
+        width: 4px;
+        height: 100%;
+        position: absolute;
+        left: 0;
+        top: 0;
+    }
+
+    .task-status-running {
+        background-color: var(--primary-color);
+    }
+
+    .task-status-completed {
+        background-color: var(--success-color);
+    }
+
+    .task-status-warning {
+        background-color: var(--warning-color);
+    }
+
+    .task-status-error {
+        background-color: var(--error-color);
+    }
+
+    .task-filter {
+        background: var(--bg-card);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .form-control, .form-select {
+        border-radius: 0.5rem;
+        border-color: var(--border-color);
+        padding: 0.75rem 1rem;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    }
+
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        border-radius: 0.5rem;
+        padding: 0.75rem 1.5rem;
+    }
+
+    .btn-primary:hover {
+        background-color: var(--primary-hover);
+        border-color: var(--primary-hover);
+    }
+
+    .task-detail-section {
+        background: var(--bg-card);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .log-container {
+        background-color: #1e1e1e;
+        color: #d4d4d4;
+        font-family: 'JetBrains Mono', 'Consolas', monospace;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .log-line {
+        margin: 0;
+        padding: 0.25rem 0;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+
+    .log-info {
+        color: #6c757d;
+    }
+
+    .log-warning {
+        color: var(--warning-color);
+    }
+
+    .log-error {
+        color: var(--error-color);
+    }
+
+    .resource-chart {
+        height: 240px;
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+
+    .modal-content {
+        border-radius: 1rem;
+        border: none;
+    }
+
+    .modal-header {
+        border-bottom: 1px solid var(--border-color);
+        padding: 1.5rem;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    .modal-footer {
+        border-top: 1px solid var(--border-color);
+        padding: 1.5rem;
+    }
+
+    .progress {
+        height: 6px;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .progress-bar {
+        background-color: var(--primary-color);
+    }
+
+    .badge {
+        padding: 0.5rem 0.75rem;
+        font-weight: 500;
+    }
+
+    .badge.text-bg-primary {
+        background-color: rgba(99, 102, 241, 0.1) !important;
+        color: var(--primary-color) !important;
+    }
+
+    .badge.text-bg-success {
+        background-color: rgba(16, 185, 129, 0.1) !important;
+        color: var(--success-color) !important;
+    }
+
+    .badge.text-bg-warning {
+        background-color: rgba(245, 158, 11, 0.1) !important;
+        color: var(--warning-color) !important;
+    }
+
+    .badge.text-bg-danger {
+        background-color: rgba(239, 68, 68, 0.1) !important;
+        color: var(--error-color) !important;
+    }
+
+    .btn-group-sm .btn {
+        border-radius: 0.375rem;
+    }
+
+    .monitor-settings {
+        background-color: var(--bg-content);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tasks-container">
+    <!-- 任务管理头部 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">任务管理</h1>
+            <p class="text-muted mb-0">管理和监控所有任务</p>
+        </div>
+        <div>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newTaskModal">
+                <i class="fas fa-plus me-2"></i>新建任务
+            </button>
+        </div>
+    </div>
+
+    <!-- 任务筛选器 -->
+    <div class="task-filter mb-4">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label for="status-filter" class="form-label">状态</label>
+                <select class="form-select" id="status-filter">
+                    <option value="">全部</option>
+                    <option value="running">运行中</option>
+                    <option value="completed">已完成</option>
+                    <option value="warning">警告</option>
+                    <option value="error">错误</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="type-filter" class="form-label">类型</label>
+                <select class="form-select" id="type-filter">
+                    <option value="">全部</option>
+                    <option value="file">文件监控</option>
+                    <option value="log">日志监控</option>
+                    <option value="gpu">GPU监控</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="search-filter" class="form-label">搜索</label>
+                <input type="text" class="form-control" id="search-filter" placeholder="搜索任务名称或描述">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="button" class="btn btn-secondary w-100" id="reset-filter">
+                    <i class="fas fa-undo me-2"></i>重置
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 任务列表 -->
+    <div class="row" id="task-list">
+        {% for task in tasks %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card task-card position-relative">
+                <div class="task-status task-status-{{ task.status }}"></div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title mb-0">{{ task.name }}</h5>
+                        <span class="badge rounded-pill text-bg-{{ task.badge_class }}">{{ task.status_text }}</span>
+                    </div>
+                    <p class="card-text text-muted small mb-3">{{ task.description }}</p>
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            <i class="fas fa-clock me-1"></i>开始时间: {{ task.start_time }}
+                        </small>
+                        {% if task.elapsed %}
+                        <br>
+                        <small class="text-muted">
+                            <i class="fas fa-hourglass-half me-1"></i>已运行: {{ task.elapsed }}
+                        </small>
+                        {% endif %}
+                    </div>
+                    {% if task.progress is not none %}
+                    <div class="progress mb-2" style="height: 6px;">
+                        <div class="progress-bar" role="progressbar" style="width: {{ task.progress }}%"></div>
+                    </div>
+                    <small class="text-muted">进度: {{ task.progress }}%</small>
+                    {% endif %}
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-sm btn-outline-primary me-2" 
+                                onclick="showTaskDetail('{{ task.id }}')">
+                            <i class="fas fa-info-circle me-1"></i>详情
+                        </button>
+                        {% if task.status == 'running' %}
+                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                onclick="stopTask('{{ task.id }}')">
+                            <i class="fas fa-stop me-1"></i>停止
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 新建任务模态框 -->
+    <div class="modal fade" id="newTaskModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">新建任务</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="newTaskForm">
+                        <div class="mb-3">
+                            <label for="task-name" class="form-label">任务名称</label>
+                            <input type="text" class="form-control" id="task-name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="task-type" class="form-label">任务类型</label>
+                            <select class="form-select" id="task-type" required>
+                                <option value="">选择任务类型</option>
+                                <option value="file">文件监控</option>
+                                <option value="log">日志监控</option>
+                                <option value="gpu">GPU监控</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="task-description" class="form-label">任务描述</label>
+                            <textarea class="form-control" id="task-description" rows="3"></textarea>
+                        </div>
+                        
+                        <!-- 文件监控设置 -->
+                        <div id="file-monitor-settings" class="monitor-settings" style="display: none;">
+                            <div class="mb-3">
+                                <label for="file-path" class="form-label">监控文件路径</label>
+                                <input type="text" class="form-control" id="file-path">
+                            </div>
+                            <div class="mb-3">
+                                <label for="file-pattern" class="form-label">文件匹配模式</label>
+                                <input type="text" class="form-control" id="file-pattern" placeholder="*.txt, *.log">
+                            </div>
+                        </div>
+                        
+                        <!-- 日志监控设置 -->
+                        <div id="log-monitor-settings" class="monitor-settings" style="display: none;">
+                            <div class="mb-3">
+                                <label for="log-path" class="form-label">日志文件路径</label>
+                                <input type="text" class="form-control" id="log-path">
+                            </div>
+                            <div class="mb-3">
+                                <label for="log-keywords" class="form-label">关键词</label>
+                                <input type="text" class="form-control" id="log-keywords" placeholder="使用逗号分隔多个关键词">
+                            </div>
+                        </div>
+                        
+                        <!-- GPU监控设置 -->
+                        <div id="gpu-monitor-settings" class="monitor-settings" style="display: none;">
+                            <div class="mb-3">
+                                <label for="gpu-ids" class="form-label">GPU ID</label>
+                                <input type="text" class="form-control" id="gpu-ids" placeholder="all 或 0,1,2">
+                            </div>
+                            <div class="mb-3">
+                                <label for="gpu-power-threshold" class="form-label">功耗阈值（瓦特）</label>
+                                <input type="number" class="form-control" id="gpu-power-threshold">
+                            </div>
+                            <div class="mb-3">
+                                <label for="gpu-temp-threshold" class="form-label">温度阈值（°C）</label>
+                                <input type="number" class="form-control" id="gpu-temp-threshold">
+                            </div>
+                        </div>
+                        
+                        <!-- 通用设置 -->
+                        <div class="mb-3">
+                            <label for="check-interval" class="form-label">检查间隔（秒）</label>
+                            <input type="number" class="form-control" id="check-interval" value="5">
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="auto-stop" checked>
+                                <label class="form-check-label" for="auto-stop">
+                                    任务完成后自动停止
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="create-task">创建任务</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 任务详情模态框 -->
+    <div class="modal fade" id="taskDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">任务详情</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <!-- 左侧信息 -->
+                        <div class="col-lg-4">
+                            <div class="task-detail-section">
+                                <h6 class="mb-3">基本信息</h6>
+                                <dl class="row mb-0">
+                                    <dt class="col-sm-4">任务ID</dt>
+                                    <dd class="col-sm-8" id="detail-task-id"></dd>
+                                    
+                                    <dt class="col-sm-4">任务名称</dt>
+                                    <dd class="col-sm-8" id="detail-task-name"></dd>
+                                    
+                                    <dt class="col-sm-4">任务类型</dt>
+                                    <dd class="col-sm-8" id="detail-task-type"></dd>
+                                    
+                                    <dt class="col-sm-4">创建时间</dt>
+                                    <dd class="col-sm-8" id="detail-create-time"></dd>
+                                    
+                                    <dt class="col-sm-4">开始时间</dt>
+                                    <dd class="col-sm-8" id="detail-start-time"></dd>
+                                    
+                                    <dt class="col-sm-4">运行时长</dt>
+                                    <dd class="col-sm-8" id="detail-elapsed"></dd>
+                                </dl>
+                            </div>
+                            
+                            <div class="task-detail-section">
+                                <h6 class="mb-3">监控设置</h6>
+                                <dl class="row mb-0" id="detail-monitor-settings">
+                                    <!-- 动态填充监控设置 -->
+                                </dl>
+                            </div>
+                            
+                            <div class="task-detail-section">
+                                <h6 class="mb-3">通知设置</h6>
+                                <dl class="row mb-0" id="detail-notification-settings">
+                                    <!-- 动态填充通知设置 -->
+                                </dl>
+                            </div>
+                        </div>
+                        
+                        <!-- 右侧监控数据 -->
+                        <div class="col-lg-8">
+                            <!-- 资源使用图表 -->
+                            <div class="task-detail-section">
+                                <h6 class="mb-3">资源使用</h6>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <div id="cpu-memory-chart" class="resource-chart"></div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div id="gpu-chart" class="resource-chart"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 日志输出 -->
+                            <div class="task-detail-section">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="mb-0">日志输出</h6>
+                                    <div class="btn-group btn-group-sm">
+                                        <button type="button" class="btn btn-outline-secondary active">全部</button>
+                                        <button type="button" class="btn btn-outline-secondary">信息</button>
+                                        <button type="button" class="btn btn-outline-secondary">警告</button>
+                                        <button type="button" class="btn btn-outline-secondary">错误</button>
+                                    </div>
+                                </div>
+                                <div class="log-container">
+                                    <div id="task-logs">
+                                        <!-- 动态填充日志内容 -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-primary" onclick="refreshTaskDetail()">
+                        <i class="fas fa-sync-alt me-1"></i>刷新
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 任务类型切换
+    document.getElementById('task-type').addEventListener('change', function() {
+        // 隐藏所有监控设置
+        document.querySelectorAll('.monitor-settings').forEach(el => {
+            el.style.display = 'none';
+        });
+        
+        // 显示选中类型的设置
+        const selectedType = this.value;
+        if (selectedType) {
+            document.getElementById(`${selectedType}-monitor-settings`).style.display = 'block';
+        }
+    });
+    
+    // 创建任务
+    document.getElementById('create-task').addEventListener('click', function() {
+        this.disabled = true;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>创建中...';
+        
+        const taskType = document.getElementById('task-type').value;
+        const taskData = {
+            name: document.getElementById('task-name').value,
+            type: taskType,
+            description: document.getElementById('task-description').value,
+            check_interval: document.getElementById('check-interval').value,
+            auto_stop: document.getElementById('auto-stop').checked,
+            settings: {}
+        };
+        
+        // 根据任务类型收集特定设置
+        if (taskType === 'file') {
+            taskData.settings = {
+                file_path: document.getElementById('file-path').value,
+                file_pattern: document.getElementById('file-pattern').value
+            };
+        } else if (taskType === 'log') {
+            taskData.settings = {
+                log_path: document.getElementById('log-path').value,
+                keywords: document.getElementById('log-keywords').value.split(',').map(k => k.trim())
+            };
+        } else if (taskType === 'gpu') {
+            taskData.settings = {
+                gpu_ids: document.getElementById('gpu-ids').value,
+                power_threshold: document.getElementById('gpu-power-threshold').value,
+                temp_threshold: document.getElementById('gpu-temp-threshold').value
+            };
+        }
+        
+        // 发送到服务器
+        fetch('/api/v1/tasks', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(taskData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.code === 200) {
+                // 关闭模态框并刷新任务列表
+                const modal = bootstrap.Modal.getInstance(document.getElementById('newTaskModal'));
+                modal.hide();
+                location.reload();
+            } else {
+                throw new Error(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('创建任务失败:', error);
+            alert('创建任务失败: ' + error.message);
+        })
+        .finally(() => {
+            this.disabled = false;
+            this.innerHTML = '创建任务';
+        });
+    });
+    
+    // 任务筛选
+    const filterTasks = () => {
+        const status = document.getElementById('status-filter').value;
+        const type = document.getElementById('type-filter').value;
+        const search = document.getElementById('search-filter').value.toLowerCase();
+        
+        document.querySelectorAll('#task-list .task-card').forEach(card => {
+            const taskStatus = card.querySelector('.task-status').className.split('-').pop();
+            const taskType = card.dataset.type;
+            const taskName = card.querySelector('.card-title').textContent.toLowerCase();
+            const taskDesc = card.querySelector('.card-text').textContent.toLowerCase();
+            
+            const statusMatch = !status || taskStatus === status;
+            const typeMatch = !type || taskType === type;
+            const searchMatch = !search || 
+                taskName.includes(search) || 
+                taskDesc.includes(search);
+            
+            card.style.display = statusMatch && typeMatch && searchMatch ? 'block' : 'none';
+        });
+    };
+    
+    document.getElementById('status-filter').addEventListener('change', filterTasks);
+    document.getElementById('type-filter').addEventListener('change', filterTasks);
+    document.getElementById('search-filter').addEventListener('input', filterTasks);
+    
+    document.getElementById('reset-filter').addEventListener('click', function() {
+        document.getElementById('status-filter').value = '';
+        document.getElementById('type-filter').value = '';
+        document.getElementById('search-filter').value = '';
+        filterTasks();
+    });
+});
+
+// 显示任务详情
+function showTaskDetail(taskId) {
+    const modal = new bootstrap.Modal(document.getElementById('taskDetailModal'));
+    
+    // 获取任务详情
+    fetch(`/api/v1/tasks/${taskId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.code === 200) {
+                const task = data.data;
+                
+                // 填充基本信息
+                document.getElementById('detail-task-id').textContent = task.id;
+                document.getElementById('detail-task-name').textContent = task.name;
+                document.getElementById('detail-task-type').textContent = task.type;
+                document.getElementById('detail-create-time').textContent = task.created_at;
+                document.getElementById('detail-start-time').textContent = task.start_time;
+                document.getElementById('detail-elapsed').textContent = task.elapsed;
+                
+                // 填充监控设置
+                const monitorSettings = document.getElementById('detail-monitor-settings');
+                monitorSettings.innerHTML = Object.entries(task.settings)
+                    .map(([key, value]) => `
+                        <dt class="col-sm-4">${key}</dt>
+                        <dd class="col-sm-8">${value}</dd>
+                    `).join('');
+                
+                // 填充通知设置
+                const notificationSettings = document.getElementById('detail-notification-settings');
+                notificationSettings.innerHTML = Object.entries(task.notifications)
+                    .map(([key, value]) => `
+                        <dt class="col-sm-4">${key}</dt>
+                        <dd class="col-sm-8">${value ? '启用' : '禁用'}</dd>
+                    `).join('');
+                
+                // 初始化资源使用图表
+                initResourceCharts(task);
+                
+                // 填充日志
+                const logsContainer = document.getElementById('task-logs');
+                logsContainer.innerHTML = task.logs
+                    .map(log => `
+                        <div class="log-line log-${log.level.toLowerCase()}">
+                            <span class="me-2">[${log.time}]</span>${log.message}
+                        </div>
+                    `).join('');
+                
+                modal.show();
+            } else {
+                throw new Error(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('获取任务详情失败:', error);
+            alert('获取任务详情失败: ' + error.message);
+        });
+}
+
+// 初始化资源使用图表
+function initResourceCharts(task) {
+    // CPU和内存使用率图表
+    const cpuMemoryChart = echarts.init(document.getElementById('cpu-memory-chart'));
+    const cpuMemoryOption = {
+        title: {
+            text: 'CPU和内存使用率',
+            textStyle: {
+                fontSize: 14
+            }
+        },
+        tooltip: {
+            trigger: 'axis'
+        },
+        legend: {
+            data: ['CPU', '内存']
+        },
+        xAxis: {
+            type: 'category',
+            data: task.metrics.timestamps
+        },
+        yAxis: {
+            type: 'value',
+            max: 100,
+            axisLabel: {
+                formatter: '{value}%'
+            }
+        },
+        series: [
+            {
+                name: 'CPU',
+                type: 'line',
+                data: task.metrics.cpu,
+                smooth: true
+            },
+            {
+                name: '内存',
+                type: 'line',
+                data: task.metrics.memory,
+                smooth: true
+            }
+        ]
+    };
+    cpuMemoryChart.setOption(cpuMemoryOption);
+    
+    // GPU使用率图表
+    const gpuChart = echarts.init(document.getElementById('gpu-chart'));
+    const gpuOption = {
+        title: {
+            text: 'GPU使用率',
+            textStyle: {
+                fontSize: 14
+            }
+        },
+        tooltip: {
+            trigger: 'axis'
+        },
+        legend: {
+            data: ['GPU使用率', 'GPU显存']
+        },
+        xAxis: {
+            type: 'category',
+            data: task.metrics.timestamps
+        },
+        yAxis: {
+            type: 'value',
+            max: 100,
+            axisLabel: {
+                formatter: '{value}%'
+            }
+        },
+        series: [
+            {
+                name: 'GPU使用率',
+                type: 'line',
+                data: task.metrics.gpu_util,
+                smooth: true
+            },
+            {
+                name: 'GPU显存',
+                type: 'line',
+                data: task.metrics.gpu_memory,
+                smooth: true
+            }
+        ]
+    };
+    gpuChart.setOption(gpuOption);
+    
+    // 响应式调整
+    window.addEventListener('resize', function() {
+        cpuMemoryChart.resize();
+        gpuChart.resize();
+    });
+}
+
+// 停止任务
+function stopTask(taskId) {
+    if (confirm('确定要停止该任务吗？')) {
+        fetch(`/api/v1/tasks/${taskId}/stop`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.code === 200) {
+                location.reload();
+            } else {
+                throw new Error(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('停止任务失败:', error);
+            alert('停止任务失败: ' + error.message);
+        });
+    }
+}
+
+// 刷新任务详情
+function refreshTaskDetail() {
+    const taskId = document.getElementById('detail-task-id').textContent;
+    showTaskDetail(taskId);
+}
+</script>
+{% endblock %} 

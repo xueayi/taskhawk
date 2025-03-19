@@ -1,0 +1,260 @@
+# TaskNya 项目开发规范
+
+## 1. 项目结构
+```
+TaskNya/
+├── app/                      # Web应用主目录
+│   ├── __init__.py
+│   ├── api/                  # API接口
+│   │   ├── __init__.py
+│   │   ├── monitor.py       # 监控相关API
+│   │   ├── system.py        # 系统相关API
+│   │   └── notification.py  # 通知相关API
+│   ├── core/                # 核心功能模块
+│   │   ├── __init__.py
+│   │   ├── monitor/        # 监控模块
+│   │   │   ├── file_monitor.py
+│   │   │   ├── log_monitor.py
+│   │   │   ├── gpu_monitor.py
+│   │   │   └── system_monitor.py
+│   │   ├── notification/    # 通知模块
+│   │   │   ├── webhook.py
+│   │   │   ├── email.py
+│   │   │   └── wechat.py
+│   │   └── utils/          # 工具模块
+│   │       ├── config.py
+│   │       ├── logger.py
+│   │       └── validators.py
+│   ├── models/             # 数据模型
+│   │   ├── __init__.py
+│   │   ├── task.py
+│   │   └── system.py
+│   ├── static/             # 静态文件
+│   │   ├── css/
+│   │   ├── js/
+│   │   └── images/
+│   └── templates/          # 前端模板
+│       ├── base.html
+│       ├── dashboard.html
+│       └── settings.html
+├── config/                 # 配置文件目录
+│   ├── config.yaml        # 主配置文件
+│   └── logging.yaml       # 日志配置
+├── docs/                  # 文档
+│   ├── api/
+│   ├── deployment/
+│   └── examples/
+├── tests/                 # 测试
+│   ├── __init__.py
+│   ├── test_monitor.py
+│   └── test_notification.py
+├── scripts/              # 部署和工具脚本
+│   ├── install.sh
+│   └── docker/
+├── .gitignore
+├── README.md
+├── requirements.txt
+└── main.py              # 入口文件
+
+## 2. 代码规范
+
+### 2.1 Python代码规范
+- 遵循PEP 8规范
+- 使用4个空格缩进
+- 最大行长度限制为120字符
+- 类名使用CamelCase
+- 函数和变量名使用snake_case
+- 常量使用大写字母加下划线
+
+### 2.2 注释规范
+```python
+def function_name(param1: type, param2: type) -> return_type:
+    """
+    函数功能简述
+
+    Args:
+        param1 (type): 参数1描述
+        param2 (type): 参数2描述
+
+    Returns:
+        return_type: 返回值描述
+
+    Raises:
+        ExceptionType: 异常描述
+    """
+    pass
+```
+
+### 2.3 API接口规范
+- 使用RESTful风格
+- URL使用小写字母，单词间用连字符(-)分隔
+- 返回JSON格式数据
+- HTTP状态码规范使用
+
+示例：
+```python
+@app.route('/api/v1/tasks', methods=['GET'])
+def get_tasks():
+    """获取任务列表"""
+    return jsonify({
+        'code': 200,
+        'message': 'success',
+        'data': {
+            'tasks': []
+        }
+    })
+```
+
+## 3. 核心接口定义
+
+### 3.1 监控模块接口
+```python
+class BaseMonitor(ABC):
+    @abstractmethod
+    def start(self):
+        """启动监控"""
+        pass
+
+    @abstractmethod
+    def stop(self):
+        """停止监控"""
+        pass
+
+    @abstractmethod
+    def check_status(self):
+        """检查状态"""
+        pass
+
+class FileMonitor(BaseMonitor):
+    def __init__(self, file_path: str, check_interval: int = 5):
+        pass
+
+class LogMonitor(BaseMonitor):
+    def __init__(self, log_path: str, markers: List[str], check_interval: int = 5):
+        pass
+
+class GPUMonitor(BaseMonitor):
+    def __init__(self, threshold: float, gpu_ids: Union[str, List[int]], consecutive_checks: int = 3):
+        pass
+```
+
+### 3.2 通知模块接口
+```python
+class NotificationBase(ABC):
+    @abstractmethod
+    def send(self, message: dict) -> bool:
+        """发送通知"""
+        pass
+
+class WebhookNotification(NotificationBase):
+    def __init__(self, webhook_url: str, config: dict):
+        pass
+
+class EmailNotification(NotificationBase):
+    def __init__(self, smtp_config: dict):
+        pass
+```
+
+### 3.3 系统监控接口
+```python
+class SystemMonitor:
+    def get_cpu_info(self) -> dict:
+        """获取CPU信息"""
+        pass
+
+    def get_memory_info(self) -> dict:
+        """获取内存信息"""
+        pass
+
+    def get_disk_info(self) -> dict:
+        """获取磁盘信息"""
+        pass
+
+    def get_network_info(self) -> dict:
+        """获取网络信息"""
+        pass
+```
+
+## 4. 数据库模型
+
+### 4.1 任务模型
+```python
+class Task(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    status = db.Column(db.String(20), default='pending')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
+```
+
+### 4.2 系统监控数据模型
+```python
+class SystemMetrics(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    cpu_usage = db.Column(db.Float)
+    memory_usage = db.Column(db.Float)
+    disk_usage = db.Column(db.Float)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+```
+
+## 5. 前端规范
+
+### 5.1 Vue组件规范
+- 使用Composition API
+- 组件名使用PascalCase
+- Props定义要明确类型
+- 使用TypeScript
+
+### 5.2 样式规范
+- 使用SCSS预处理器
+- BEM命名规范
+- 响应式设计
+- 主题可配置
+
+## 6. 测试规范
+
+### 6.1 单元测试
+- 使用pytest框架
+- 测试文件命名：test_*.py
+- 测试函数命名：test_*
+- 使用fixture管理测试数据
+
+### 6.2 集成测试
+- 测试API接口
+- 测试数据库操作
+- 测试监控功能
+- 测试通知功能
+
+## 7. 文档规范
+
+### 7.1 代码文档
+- 模块级文档：描述模块功能和使用方法
+- 类文档：描述类的功能和使用方法
+- 函数文档：描述参数、返回值和异常
+
+### 7.2 API文档
+- 使用OpenAPI (Swagger)规范
+- 详细的接口说明
+- 请求/响应示例
+- 错误码说明
+
+## 8. Git规范
+
+### 8.1 分支管理
+- main: 主分支
+- develop: 开发分支
+- feature/*: 功能分支
+- bugfix/*: 修复分支
+- release/*: 发布分支
+
+### 8.2 提交信息
+格式：`<type>(<scope>): <subject>`
+
+类型：
+- feat: 新功能
+- fix: 修复bug
+- docs: 文档更新
+- style: 代码格式
+- refactor: 重构
+- test: 测试
+- chore: 构建过程或辅助工具的变动 

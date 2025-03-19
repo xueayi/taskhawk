@@ -1,0 +1,414 @@
+{% extends "base.html" %}
+
+{% block title %}仪表盘 - TaskNya{% endblock %}
+
+{% block additional_css %}
+<style>
+    .card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    .metric-card {
+        height: 100%;
+    }
+    .metric-value {
+        font-size: 2rem;
+        font-weight: bold;
+    }
+    .metric-label {
+        color: #6c757d;
+    }
+    .chart-container {
+        height: 300px;
+        width: 100%;
+    }
+    .status-badge {
+        font-size: 0.85rem;
+    }
+    .task-list-item {
+        border-left: 4px solid transparent;
+        transition: background-color 0.2s;
+    }
+    .task-list-item:hover {
+        background-color: rgba(0,0,0,0.05);
+    }
+    .task-running {
+        border-left-color: #0d6efd;
+    }
+    .task-completed {
+        border-left-color: #198754;
+    }
+    .task-warning {
+        border-left-color: #ffc107;
+    }
+    .task-error {
+        border-left-color: #dc3545;
+    }
+    .alert-container {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="mb-3">仪表盘</h1>
+        <p class="text-muted">任务和系统概览信息</p>
+    </div>
+    <div class="col-auto d-flex align-items-center">
+        <span class="me-3">最后更新: {{ last_update }}</span>
+        <button id="refresh-dashboard" class="btn btn-sm btn-outline-primary">
+            <i class="fas fa-sync-alt"></i> 刷新
+        </button>
+    </div>
+</div>
+
+<!-- 统计卡片 -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <h5 class="card-title metric-label">CPU 使用率</h5>
+                <p class="card-text metric-value" id="cpu-usage">{{ cpu_usage }}%</p>
+                <div class="progress">
+                    <div class="progress-bar" role="progressbar" style="width: {{ cpu_usage }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <h5 class="card-title metric-label">内存使用率</h5>
+                <p class="card-text metric-value" id="memory-usage">{{ memory_usage }}%</p>
+                <div class="progress">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ memory_usage }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <h5 class="card-title metric-label">磁盘使用率</h5>
+                <p class="card-text metric-value" id="disk-usage">{{ disk_usage }}%</p>
+                <div class="progress">
+                    <div class="progress-bar bg-info" role="progressbar" style="width: {{ disk_usage }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <h5 class="card-title metric-label">活跃任务</h5>
+                <p class="card-text metric-value" id="active-tasks">{{ active_tasks }}</p>
+                <div class="d-flex justify-content-center">
+                    <span class="badge rounded-pill bg-primary me-1">运行中: {{ running_tasks }}</span>
+                    <span class="badge rounded-pill bg-warning">等待中: {{ waiting_tasks }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <!-- 系统资源图表 -->
+    <div class="col-lg-8 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">系统资源监控</h5>
+                <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-outline-secondary active" data-time="1h">1小时</button>
+                    <button type="button" class="btn btn-outline-secondary" data-time="6h">6小时</button>
+                    <button type="button" class="btn btn-outline-secondary" data-time="24h">24小时</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="system-chart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GPU 状态 -->
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">GPU 状态</h5>
+            </div>
+            <div class="card-body">
+                {% if gpus %}
+                    {% for gpu in gpus %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0">{{ gpu.name }}</h6>
+                            <span class="badge rounded-pill text-bg-{{ 'success' if gpu.temp < 70 else 'warning' if gpu.temp < 85 else 'danger' }}">
+                                {{ gpu.temp }}°C
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <small class="d-flex justify-content-between">
+                                <span>负载</span>
+                                <span>{{ gpu.load }}%</span>
+                            </small>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar" role="progressbar" style="width: {{ gpu.load }}%;"></div>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <small class="d-flex justify-content-between">
+                                <span>显存</span>
+                                <span>{{ gpu.mem_used }} / {{ gpu.mem_total }} MB</span>
+                            </small>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar bg-info" role="progressbar" 
+                                    style="width: {{ (gpu.mem_used / gpu.mem_total * 100) if gpu.mem_total else 0 }}%;"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <small class="d-flex justify-content-between">
+                                <span>功耗</span>
+                                <span>{{ gpu.power }}W</span>
+                            </small>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar bg-success" role="progressbar" 
+                                    style="width: {{ (gpu.power / gpu.power_limit * 100) if gpu.power_limit else 0 }}%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    {% if not loop.last %}<hr>{% endif %}
+                    {% endfor %}
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-microchip fa-3x mb-3 text-muted"></i>
+                    <p>未检测到 GPU 设备</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <!-- 运行中任务 -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">活跃任务</h5>
+                <a href="{{ url_for('tasks') }}" class="btn btn-sm btn-outline-primary">查看全部</a>
+            </div>
+            <div class="card-body p-0">
+                {% if tasks %}
+                <div class="list-group list-group-flush">
+                    {% for task in tasks %}
+                    <div class="list-group-item task-list-item {{ task.status_class }}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-1">{{ task.name }}</h6>
+                            <span class="badge rounded-pill text-bg-{{ task.badge_class }}">{{ task.status }}</span>
+                        </div>
+                        <div class="mb-2">
+                            <small class="text-muted">开始时间: {{ task.start_time }}</small>
+                            {% if task.elapsed %}
+                            <small class="text-muted ms-3">已运行: {{ task.elapsed }}</small>
+                            {% endif %}
+                        </div>
+                        {% if task.progress is not none %}
+                        <div class="d-flex align-items-center">
+                            <div class="progress flex-grow-1" style="height: 6px;">
+                                <div class="progress-bar" role="progressbar" style="width: {{ task.progress }}%;"></div>
+                            </div>
+                            <small class="ms-2">{{ task.progress }}%</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-tasks fa-3x mb-3 text-muted"></i>
+                    <p>当前没有活跃任务</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 最近告警 -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">最近告警</h5>
+                <a href="#" class="btn btn-sm btn-outline-primary">查看全部</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="alert-container">
+                    {% if alerts %}
+                    <div class="list-group list-group-flush">
+                        {% for alert in alerts %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-1">{{ alert.title }}</h6>
+                                <small class="text-muted">{{ alert.time }}</small>
+                            </div>
+                            <p class="mb-1">{{ alert.message }}</p>
+                            <div>
+                                <span class="badge text-bg-{{ alert.level_class }}">{{ alert.level }}</span>
+                                <span class="badge text-bg-secondary">{{ alert.source }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-check-circle fa-3x mb-3 text-success"></i>
+                        <p>没有最近的告警</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 系统资源图表
+        const systemChart = echarts.init(document.getElementById('system-chart'));
+        
+        // 模拟数据
+        const timestamps = [];
+        const cpuData = [];
+        const memoryData = [];
+        const diskIoData = [];
+        
+        // 生成过去1小时的数据点，每分钟一个
+        const now = new Date();
+        for (let i = 60; i >= 0; i--) {
+            const time = new Date(now.getTime() - i * 60000);
+            timestamps.push(time.toLocaleTimeString());
+            
+            // 模拟数据波动
+            cpuData.push(Math.round(20 + Math.random() * 40));
+            memoryData.push(Math.round(40 + Math.random() * 20));
+            diskIoData.push(Math.round(10 + Math.random() * 30));
+        }
+        
+        const option = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'cross',
+                    label: {
+                        backgroundColor: '#6a7985'
+                    }
+                }
+            },
+            legend: {
+                data: ['CPU', '内存', '磁盘I/O']
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                boundaryGap: false,
+                data: timestamps
+            },
+            yAxis: {
+                type: 'value',
+                max: 100,
+                axisLabel: {
+                    formatter: '{value}%'
+                }
+            },
+            series: [
+                {
+                    name: 'CPU',
+                    type: 'line',
+                    data: cpuData,
+                    smooth: true,
+                    lineStyle: {
+                        width: 2
+                    },
+                    areaStyle: {
+                        opacity: 0.2
+                    },
+                    itemStyle: {
+                        color: '#0d6efd'
+                    }
+                },
+                {
+                    name: '内存',
+                    type: 'line',
+                    data: memoryData,
+                    smooth: true,
+                    lineStyle: {
+                        width: 2
+                    },
+                    areaStyle: {
+                        opacity: 0.2
+                    },
+                    itemStyle: {
+                        color: '#198754'
+                    }
+                },
+                {
+                    name: '磁盘I/O',
+                    type: 'line',
+                    data: diskIoData,
+                    smooth: true,
+                    lineStyle: {
+                        width: 2
+                    },
+                    areaStyle: {
+                        opacity: 0.2
+                    },
+                    itemStyle: {
+                        color: '#0dcaf0'
+                    }
+                }
+            ]
+        };
+        
+        systemChart.setOption(option);
+        
+        // 响应式调整
+        window.addEventListener('resize', function() {
+            systemChart.resize();
+        });
+        
+        // 时间范围切换
+        document.querySelectorAll('.btn-group-sm .btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.btn-group-sm .btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                // 这里可以添加按不同时间范围加载数据的逻辑
+            });
+        });
+        
+        // 刷新按钮
+        document.getElementById('refresh-dashboard').addEventListener('click', function() {
+            this.disabled = true;
+            const icon = this.querySelector('i');
+            icon.classList.add('fa-spin');
+            
+            // 模拟刷新延迟
+            setTimeout(() => {
+                this.disabled = false;
+                icon.classList.remove('fa-spin');
+                // 这里添加刷新数据的逻辑
+            }, 1000);
+        });
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,21 @@
+project_name: "测试项目"
+
+# 监控配置
+check_log_enabled: true
+check_log_path: "logs/training.log"
+check_log_markers:
+  - "Training completed"
+  - "训练完成"
+check_interval: 5  # 检查间隔（秒）
+
+# 通知配置
+notification:
+  email:
+    enabled: false  # 暂时关闭邮件通知进行测试
+    smtp_server: "smtp.example.com"
+    smtp_port: 587
+    username: "your-email@example.com"
+    password: "your-password"
+    use_tls: true
+    from_address: "your-email@example.com"
+    to_addresses: ["recipient@example.com"] 

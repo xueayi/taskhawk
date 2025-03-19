@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}TaskNya - 任务监测系统{% endblock %}</title>
+    <!-- Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- 自定义CSS -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    {% block additional_css %}{% endblock %}
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="TaskNya Logo" width="30" height="30" class="d-inline-block align-top">
+                TaskNya
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_page == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
+                            <i class="fas fa-tachometer-alt"></i> 仪表盘
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_page == 'tasks' %}active{% endif %}" href="{{ url_for('tasks') }}">
+                            <i class="fas fa-tasks"></i> 任务管理
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_page == 'system' %}active{% endif %}" href="{{ url_for('system') }}">
+                            <i class="fas fa-server"></i> 系统监控
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_page == 'settings' %}active{% endif %}" href="{{ url_for('settings') }}">
+                            <i class="fas fa-cog"></i> 设置
+                        </a>
+                    </li>
+                </ul>
+                <div class="d-flex">
+                    <div class="system-status pe-3">
+                        <span class="badge rounded-pill text-bg-success"><i class="fas fa-circle me-1"></i>系统正常</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main class="container py-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="footer mt-auto py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">TaskNya &copy; 2023 - 任务监测与系统健康可视化工具</span>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <!-- 自定义JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block additional_js %}{% endblock %}
+</body>
+</html> 

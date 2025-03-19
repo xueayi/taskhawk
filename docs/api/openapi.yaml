@@ -1,0 +1,501 @@
+openapi: 3.0.0
+info:
+  title: TaskNya API
+  description: TaskNya 系统监控和任务管理 API
+  version: 1.0.0
+
+servers:
+  - url: /api/v1
+    description: API 基础路径
+
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 错误状态码
+        message:
+          type: string
+          description: 错误信息
+    Task:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 任务ID
+        name:
+          type: string
+          description: 任务名称
+        type:
+          type: string
+          enum: [file, log, gpu]
+          description: 任务类型
+        description:
+          type: string
+          description: 任务描述
+        status:
+          type: string
+          enum: [pending, running, completed, warning, error]
+          description: 任务状态
+        settings:
+          type: object
+          description: 任务特定设置
+        created_at:
+          type: string
+          format: date-time
+          description: 创建时间
+        start_time:
+          type: string
+          format: date-time
+          description: 开始时间
+        elapsed:
+          type: string
+          description: 运行时长
+        progress:
+          type: integer
+          description: 进度（百分比）
+    TaskMetrics:
+      type: object
+      properties:
+        timestamps:
+          type: array
+          items:
+            type: string
+            format: date-time
+          description: 时间戳列表
+        cpu:
+          type: array
+          items:
+            type: number
+          description: CPU使用率列表
+        memory:
+          type: array
+          items:
+            type: number
+          description: 内存使用率列表
+        gpu_util:
+          type: array
+          items:
+            type: number
+          description: GPU使用率列表
+        gpu_memory:
+          type: array
+          items:
+            type: number
+          description: GPU内存使用率列表
+    Settings:
+      type: object
+      properties:
+        general:
+          type: object
+          properties:
+            project_name:
+              type: string
+            refresh_interval:
+              type: integer
+            language:
+              type: string
+        monitor:
+          type: object
+          properties:
+            enable_gpu_monitor:
+              type: boolean
+            gpu_power_threshold:
+              type: integer
+            gpu_temp_threshold:
+              type: integer
+            enable_system_monitor:
+              type: boolean
+            cpu_threshold:
+              type: integer
+            memory_threshold:
+              type: integer
+            disk_threshold:
+              type: integer
+        notification:
+          type: object
+          properties:
+            webhook:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                url:
+                  type: string
+                secret:
+                  type: string
+            email:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                smtp_server:
+                  type: string
+                smtp_port:
+                  type: integer
+                smtp_username:
+                  type: string
+                smtp_password:
+                  type: string
+                to:
+                  type: string
+            wechat:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                corpid:
+                  type: string
+                corpsecret:
+                  type: string
+                agentid:
+                  type: string
+        task:
+          type: object
+          properties:
+            timeout:
+              type: integer
+            check_interval:
+              type: integer
+            auto_clean:
+              type: boolean
+            clean_days:
+              type: integer
+        system:
+          type: object
+          properties:
+            log_level:
+              type: string
+            log_file:
+              type: string
+            data_dir:
+              type: string
+            debug:
+              type: boolean
+    Preset:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 预设ID
+        name:
+          type: string
+          description: 预设名称
+        description:
+          type: string
+          description: 预设描述
+        created_at:
+          type: string
+          format: date-time
+          description: 创建时间
+        settings:
+          $ref: '#/components/schemas/Settings'
+
+paths:
+  /tasks:
+    get:
+      summary: 获取任务列表
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, running, completed, warning, error]
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [file, log, gpu]
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      tasks:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Task'
+    post:
+      summary: 创建任务
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                type:
+                  type: string
+                  enum: [file, log, gpu]
+                description:
+                  type: string
+                settings:
+                  type: object
+                check_interval:
+                  type: integer
+                auto_stop:
+                  type: boolean
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      task:
+                        $ref: '#/components/schemas/Task'
+
+  /tasks/{task_id}:
+    get:
+      summary: 获取任务详情
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      task:
+                        allOf:
+                          - $ref: '#/components/schemas/Task'
+                          - type: object
+                            properties:
+                              metrics:
+                                $ref: '#/components/schemas/TaskMetrics'
+                              logs:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    time:
+                                      type: string
+                                      format: date-time
+                                    level:
+                                      type: string
+                                    message:
+                                      type: string
+    delete:
+      summary: 删除任务
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  message:
+                    type: string
+
+  /tasks/{task_id}/stop:
+    post:
+      summary: 停止任务
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  message:
+                    type: string
+
+  /settings:
+    get:
+      summary: 获取系统设置
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      settings:
+                        $ref: '#/components/schemas/Settings'
+    post:
+      summary: 更新系统设置
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Settings'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  message:
+                    type: string
+
+  /settings/presets:
+    get:
+      summary: 获取配置预设列表
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      presets:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Preset'
+    post:
+      summary: 创建配置预设
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                settings:
+                  $ref: '#/components/schemas/Settings'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      preset:
+                        $ref: '#/components/schemas/Preset'
+
+  /settings/presets/{preset_id}:
+    get:
+      summary: 获取预设详情
+      parameters:
+        - name: preset_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      preset:
+                        $ref: '#/components/schemas/Preset'
+    delete:
+      summary: 删除预设
+      parameters:
+        - name: preset_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  message:
+                    type: string 
